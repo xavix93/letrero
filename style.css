@@ -3,7 +3,7 @@
   --card:#141417;
   --muted:#8a8f98;
   --text:#e9edf1;
-  --accent:#e50914; /* rojo Franval */
+  --accent:#e50914;
   --accent-600:#c40812;
   --border:#23242a;
   --ring: rgba(229,9,20,0.35);
@@ -24,13 +24,8 @@ body{
   background:rgba(8,8,10,.8); backdrop-filter:saturate(1.2) blur(6px);
   position:sticky; top:0; z-index:5;
 }
-.brand .logo{
-  font-weight:800; letter-spacing:.5px; color:#fff; font-size:20px;
-}
+.brand .logo{font-weight:800; letter-spacing:.5px; color:#fff; font-size:20px}
 .brand .subtitle{color:var(--muted); font-size:12px}
-.gh{color:#fff; text-decoration:none; background:var(--accent);
-  padding:8px 12px; border-radius:10px}
-.gh:hover{background:var(--accent-600)}
 
 .container{
   display:grid; grid-template-columns: 420px 1fr; gap:24px;
@@ -49,23 +44,40 @@ body{
 .field{display:flex; flex-direction:column; gap:6px}
 .field-wide{grid-column:1 / -1}
 .field span{font-size:12px; color:#cfd4da}
-.field input, .field textarea{
+.field input{
   width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--border);
   background:#0f1013; color:#fff; outline:none;
 }
-.field input:focus, .field textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--ring)}
+.field input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--ring)}
 .field small{color:var(--muted); font-size:11px}
 
-.actions{display:flex; gap:10px; margin-top:6px}
+/* Chips rojos */
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px}
+.chip{
+  border:1px solid var(--border);
+  background:#101114; color:#fff; padding:8px 10px; border-radius:999px;
+  cursor:pointer; font-size:13px; user-select:none;
+  transition:all .15s ease;
+}
+.chip:hover{border-color:#3a3c44}
+.chip.active{
+  background:var(--accent); border-color:transparent; color:#fff;
+  box-shadow:0 0 0 3px var(--ring);
+}
+
+.actions{display:flex; gap:10px; margin-top:8px}
 .btn{
   border:1px solid var(--border);
   background:#101114; color:#fff; padding:10px 14px; border-radius:12px;
-  cursor:pointer;
+  cursor:pointer; transition:all .15s ease;
 }
 .btn:hover{background:#16171c}
 .btn.primary{background:var(--accent); border-color:transparent}
 .btn.primary:hover{background:var(--accent-600)}
 .btn.ghost{background:transparent}
+.btn:disabled{opacity:.6; cursor:not-allowed}
+
+.status{margin-top:10px; font-size:12px; color:var(--muted)}
 
 .preview-card .canvas{
   width:100%; max-height:75vh; background:#0f1013;
@@ -73,9 +85,7 @@ body{
 }
 .preview-card .hint{color:var(--muted); font-size:12px; margin-top:8px}
 
-.footer{
-  display:flex; justify-content:center; padding:26px 0; color:var(--muted)
-}
+.footer{display:flex; justify-content:center; padding:26px 0; color:var(--muted)}
 
 @media (max-width: 980px){
   .container{grid-template-columns: 1fr}
