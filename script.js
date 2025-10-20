@@ -8,6 +8,7 @@ const GEO = {
   BANNER_TOP:    0.24,
   BANNER_HEIGHT: 0.06,
 
+  // ⚠️ IMPORTANTE: punto decimal, no coma
   MAXW_MODEL: 1.20 * (0.88 - 0.12),
   MAXW_SUB:   0.72,
   MAXW_PRICE: 0.86,
@@ -67,8 +68,8 @@ const buildE1Lines = (kmTxt, items) => {
   const L = [];
   if (kmTxt && items.length) { L.push(`${kmTxt} , ${items[0]}`); items = items.slice(1); }
   else if (kmTxt) { L.push(kmTxt); }
-  for (let i=0; i<items.length; i+=2){
-    if (i+1 < items.length) L.push(`${items[i]} , ${items[i+1]}`);
+  for (let i = 0; i < items.length; i += 2) {
+    if (i + 1 < items.length) L.push(`${items[i]} , ${items[i + 1]}`);
     else L.push(items[i]);
   }
   return L;
@@ -76,20 +77,21 @@ const buildE1Lines = (kmTxt, items) => {
 
 // === Ajuste de tipografía adaptable ===
 function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
+  const safeText = text && text.length ? text : " ";
   let size = Math.max(targetPx, minPx);
   ctx.font = `600 ${size}px Inter, Arial, sans-serif`;
-  let width = ctx.measureText(text).width;
-  let metrics = ctx.measureText(text);
+  let width = ctx.measureText(safeText).width;
+  let metrics = ctx.measureText(safeText);
   let height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
 
   while ((width > maxWidth || (maxHeight && height > maxHeight)) && size > minPx) {
     size -= 2;
     ctx.font = `600 ${size}px Inter, Arial, sans-serif`;
-    width = ctx.measureText(text).width;
-    metrics = ctx.measureText(text);
+    width = ctx.measureText(safeText).width;
+    metrics = ctx.measureText(safeText);
     height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
   }
-  return { size, width, height };
+  return { size, width, height, text: safeText };
 }
 
 (async function main(){
@@ -191,16 +193,16 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
 
     // Modelo (blanco)
     ctx.fillStyle = "#fff";
-    let r = fitFont(ctx, modelo || " ", maxwModel, bannerHeight-6, GEO.TARGET_MODEL*H);
+    let r = fitFont(ctx, modelo, maxwModel, bannerHeight-6, GEO.TARGET_MODEL*H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
     const yModel = bannerTop + (bannerHeight-r.size)/2 + r.size*0.85 + GEO.MODEL_OFFSET*H;
-    ctx.fillText(modelo, (W-ctx.measureText(modelo).width)/2, yModel);
+    ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, yModel);
 
     // Subtítulo
     ctx.fillStyle = "#000";
-    r = fitFont(ctx, subtitle || " ", GEO.MAXW_SUB*W, null, GEO.TARGET_SUB*H);
+    r = fitFont(ctx, subtitle, GEO.MAXW_SUB*W, null, GEO.TARGET_SUB*H);
     ctx.font = `700 ${r.size}px Inter, Arial, sans-serif`;
-    ctx.fillText(subtitle, (W-ctx.measureText(subtitle).width)/2, GEO.Y_SUB*H);
+    ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, GEO.Y_SUB*H);
 
     // Precio
     r = fitFont(ctx, precioTxt, GEO.MAXW_PRICE*W, null, GEO.TARGET_PRICE*H);
@@ -212,7 +214,7 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
     for (const line of detailLines){
       r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
       ctx.font = `400 ${r.size}px Inter, Arial, sans-serif`;
-      ctx.fillText(line, (W-ctx.measureText(line).width)/2, y);
+      ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, y);
       y += r.size * 1.30;
     }
 
