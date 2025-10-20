@@ -51,8 +51,8 @@ body{
 .field input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--ring)}
 .field small{color:var(--muted); font-size:11px}
 
-/* Segmentado categorías */
-.segmented{display:flex; gap:8px; margin:6px 0 4px}
+/* Selector de categoría (tabs/segmented) */
+.segmented{display:flex; gap:8px; margin:6px 0 8px}
 .seg-btn{
   padding:8px 12px; border-radius:10px; border:1px solid var(--border);
   background:#101114; color:#fff; cursor:pointer; font-size:13px;
@@ -60,7 +60,15 @@ body{
 .seg-btn:hover{background:#16171c}
 .seg-btn.active{background:var(--accent); border-color:transparent; box-shadow:0 0 0 3px var(--ring)}
 
-/* Chips rojos */
+/* Paneles (accordion-like): solo uno visible */
+.panel{display:none}
+.panel.show{display:block}
+
+.equip-title{
+  font-size:12px; letter-spacing:.5px; color:#d6d9de; margin:4px 0 6px;
+  font-weight:700; opacity:.9;
+}
+
 .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px}
 .chip{
   border:1px solid var(--border);
@@ -69,6 +77,8 @@ body{
 }
 .chip:hover{border-color:#3a3c44}
 .chip.active{background:var(--accent); border-color:transparent; color:#fff; box-shadow:0 0 0 3px var(--ring)}
+
+.warn{display:block; margin-top:6px; color:#ffb6b6}
 
 .actions{display:flex; gap:10px; margin-top:8px}
 .btn{
