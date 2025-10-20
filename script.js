@@ -236,7 +236,10 @@ function bindSmartClick(el, handler){
     const modelo = (modeloEl.value || "").trim();
     const subtitle = `${(anioEl.value || "").trim()} ${ensureCc(cilindradaEl.value)} ${(versionEl.value || "").trim()}`.trim();
     const precioTxt = fmtPrecio(precioEl.value);
-    const kmTxt = fmtKm(kmEl.value);
+   // Si no hay dígitos en el input, no mostramos KM
+const kmRaw = onlyDigits(kmEl.value);
+const kmTxt = kmRaw ? (clMiles(kmRaw) + " km") : "";
+
 
     // Mezclamos selecciones de todas las categorías
     let items = Array.from(selected);
