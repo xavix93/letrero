@@ -21,7 +21,7 @@ const GEO = {
 
   Y_SUB:    0.305,
   Y_PRICE:  0.440,
-  Y_DETAIL: 0.480,
+  Y_DETAIL: 0.490,
 
   MODEL_OFFSET: -0.065
 };
