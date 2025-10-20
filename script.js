@@ -8,8 +8,7 @@ const GEO = {
   BANNER_TOP:    0.24,
   BANNER_HEIGHT: 0.06,
 
-  // Usa punto decimal (no coma)
-  MAXW_MODEL: 1.20 * (0.88 - 0.12),
+  MAXW_MODEL: 1.20 * (0.88 - 0.12), // punto decimal
   MAXW_SUB:   0.72,
   MAXW_PRICE: 0.86,
   MAXW_DET:   0.82,
@@ -19,14 +18,14 @@ const GEO = {
   TARGET_PRICE: 0.137,
   TARGET_DET:   0.030,
 
-  Y_SUB:    0.305,
+  Y_SUB:    0.280,
   Y_PRICE:  0.440,
   Y_DETAIL: 0.500,
 
   MODEL_OFFSET: -0.065
 };
 
-// === Equipamiento por CATEGORÍA (tu lista) ===
+// === Equipamiento por CATEGORÍA ===
 const EQUIP_BASICO = [
   "Aire Acondicionado",
   "Alza Vidrios",
@@ -43,7 +42,7 @@ const EQUIP_MEDIO = [
   "Automatico"
 ];
 
-const EQUIP_TOTAL = [
+const EQUIP_FULL = [ // renombrado desde "TOTAL"
   "Control Crucero",
   "Climatizador",
   "Sunroof",
@@ -94,6 +93,14 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   return { size, width, height, text: safeText };
 }
 
+// === Compat iPhone/PC: pointerup ===
+function bindPointerClick(el, handler){
+  el.addEventListener("pointerup", (ev) => {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    handler(ev);
+  });
+}
+
 (async function main(){
   // Inputs
   const modeloEl = document.getElementById("modelo");
@@ -103,15 +110,12 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   const precioEl = document.getElementById("precio");
   const kmEl = document.getElementById("km");
 
-  // Tabs / Chips
-  const tabs = document.getElementById("catTabs");
-  const chipsEl = document.getElementById("chips");
+  // Contenedores de chips
+  const chipsBasico = document.getElementById("chipsBasico");
+  const chipsMedio  = document.getElementById("chipsMedio");
+  const chipsFull   = document.getElementById("chipsFull");
 
-  // Estado de pestaña actual
-  let currentCat = "BASICO";
-  let currentItems = EQUIP_BASICO;
-
-  // Selección GLOBAL (Opción 2: se mantiene al cambiar de pestaña)
+  // Selección GLOBAL (mezcla libre)
   const selected = new Set();
 
   // Botones
@@ -146,19 +150,9 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
   status.textContent = "✅ Plantilla cargada";
 
-  // --- Helpers de UI (compatibles con iPhone) ---
-  function bindPointerClick(el, handler){
-    // pointerup funciona para mouse y touch (iOS/Android)
-    el.addEventListener("pointerup", (ev) => {
-      // Evita doble disparo raro
-      if (ev.pointerType === "mouse" && ev.button !== 0) return;
-      handler(ev);
-    });
-  }
-
-  // Render de chips de la categoría visible
-  function renderChips(list){
-    chipsEl.innerHTML = "";
+  // Render chips util
+  function renderChips(container, list){
+    container.innerHTML = "";
     list.forEach(label => {
       const chip = document.createElement("button");
       chip.type = "button";
@@ -169,29 +163,20 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
         if (selected.has(label)) { selected.delete(label); chip.classList.remove("active"); }
         else { selected.add(label); chip.classList.add("active"); }
       });
-      chipsEl.appendChild(chip);
+      container.appendChild(chip);
     });
   }
-  renderChips(currentItems);
 
-  // Vincular eventos a cada pestaña (sin closest, más compatible)
-  tabs.querySelectorAll(".seg-btn").forEach(btn => {
-    bindPointerClick(btn, () => {
-      tabs.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      currentCat = btn.dataset.cat;
-      currentItems = currentCat === "BASICO" ? EQUIP_BASICO : currentCat === "MEDIO" ? EQUIP_MEDIO : EQUIP_TOTAL;
-      // Opción 2: NO limpiamos 'selected', sólo re-renderizamos esta categoría
-      renderChips(currentItems);
-    });
-  });
+  // Pintar las tres secciones
+  renderChips(chipsBasico, EQUIP_BASICO);
+  renderChips(chipsMedio,  EQUIP_MEDIO);
+  renderChips(chipsFull,   EQUIP_FULL);
 
   function generar(){
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
 
     const W = canvas.width, H = canvas.height;
-
     const bannerTop = GEO.BANNER_TOP * H;
     const bannerHeight = GEO.BANNER_HEIGHT * H;
     const maxwModel = GEO.MAXW_MODEL * (GEO.BANNER_RIGHT - GEO.BANNER_LEFT) * W;
@@ -201,11 +186,11 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
     const precioTxt = fmtPrecio(precioEl.value);
     const kmTxt = fmtKm(kmEl.value);
 
-    // Items seleccionados (de cualquier categoría)
+    // Mezcla de items de todas las categorías
     const items = Array.from(selected);
     const detailLines = buildE1Lines(kmTxt, items);
 
-    // Modelo
+    // Modelo (blanco)
     ctx.fillStyle = "#fff";
     let r = fitFont(ctx, modelo, maxwModel, bannerHeight-6, GEO.TARGET_MODEL*H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
@@ -234,7 +219,7 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
 
     btnDescargar.disabled = false;
     status.style.color = "#8bd48b";
-    status.textContent = `✅ Previsualización lista (mezcla de categorías)`;
+    status.textContent = "✅ Previsualización lista (mezcla libre)";
   }
 
   function descargar(){
@@ -248,9 +233,12 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
 
   function limpiar(){
     ["modelo","anio","cilindrada","version","precio","km"].forEach(id => document.getElementById(id).value = "");
-    selected.clear(); // en Opción 2, limpiar borra todo seleccionado
-    // Mantener pestaña actual, sólo re-render chips visibles
-    renderChips(currentItems);
+    selected.clear();
+    // re-pintar chips (todos desmarcados)
+    renderChips(chipsBasico, EQUIP_BASICO);
+    renderChips(chipsMedio,  EQUIP_MEDIO);
+    renderChips(chipsFull,   EQUIP_FULL);
+
     btnDescargar.disabled = true;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(plantilla,0,0,canvas.width,canvas.height);
