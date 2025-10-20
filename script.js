@@ -283,14 +283,27 @@ const kmTxt = kmRaw ? (clMiles(kmRaw) + " km") : "";
     if (status){ status.style.color = "#8bd48b"; status.textContent = `✅ Previsualización lista · ${VERSION}`; }
   }
 
-  function descargar(){
-    const url = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "publicacion_franval.png";
-    document.body.appendChild(a);
-    a.click(); a.remove();
-  }
+ function descargar(){
+  const modeloRaw  = (modeloEl.value || "").trim().replace(/\s+/g, "_");
+  const anioRaw    = (anioEl.value || "").trim().replace(/\s+/g, "_");
+
+  // Separamos marca y modelo para evitar nombres demasiado largos
+  // Ej: "Chevrolet N400 Max" => "Chevrolet_N400_Max"
+  const nombreModelo = modeloRaw || "Vehiculo";
+  const nombreAnio   = anioRaw   || "";
+
+  // Generamos el nombre final
+  const fileName = `${nombreModelo}_${nombreAnio}.png`;
+
+  const url = canvas.toDataURL("image/png");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 
   function limpiar(){
     ["modelo","anio","cilindrada","version","precio","km"].forEach(id => {
