@@ -4,8 +4,7 @@
   <meta charset="utf-8" />
   <title>FRANVAL · Generador de Publicación</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -14,7 +13,6 @@
       <div class="logo">FRANVAL</div>
       <div class="subtitle">Generador de Publicaciones</div>
     </div>
-    <a class="gh" href="#" target="_blank" rel="noopener">GitHub Pages</a>
   </header>
 
   <main class="container">
@@ -39,7 +37,7 @@
 
         <label class="field">
           <span>Versión</span>
-          <input id="version" type="text" placeholder="LS / MAX" />
+          <input id="version" type="text" placeholder="LS / MAX / GLS" />
         </label>
 
         <label class="field">
@@ -54,11 +52,10 @@
           <small>Se formatea a 31.000 km</small>
         </label>
 
-        <label class="field field-wide">
-          <span>Equipamiento (separado por coma)</span>
-          <textarea id="equipamiento" rows="3" placeholder="Aire Acondicionado, ABS, Alza Vidrios, Full"></textarea>
-          <small>Se distribuye en varias líneas: “E1” como el ejemplo original.</small>
-        </label>
+        <div class="field field-wide">
+          <span>Equipamiento (selección tipo chips)</span>
+          <div id="chips" class="chips"></div>
+        </div>
       </div>
 
       <div class="actions">
@@ -66,6 +63,7 @@
         <button id="btnDescargar" class="btn" disabled>Descargar PNG</button>
         <button id="btnLimpiar" class="btn ghost">Limpiar</button>
       </div>
+      <div id="status" class="status"></div>
     </section>
 
     <section class="card preview-card">
