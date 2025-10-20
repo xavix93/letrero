@@ -2,23 +2,32 @@
 const TEMPLATE_SRC = "plantilla/plantilla_franval.png"; // Debe existir en tu repo
 
 const GEO = {
-  /* ...lo que ya tienes... */
-  MODEL_OFFSET: -0.30, // NEGATIVO = SUBE | POSITIVO = BAJA (proporción del alto H)
+  // Franja (sólo para cálculo; la franja está en la imagen)
   BANNER_LEFT:   0.12,
   BANNER_RIGHT:  0.88,
   BANNER_TOP:    0.24,
   BANNER_HEIGHT: 0.06,
+
+  // Áreas de ancho útil
   MAXW_MODEL: 0.94 * (0.88 - 0.12),
   MAXW_SUB:   0.72,
   MAXW_PRICE: 0.86,
   MAXW_DET:   0.82,
+
+  // Tamaños objetivo de las fuentes (en % del alto)
   TARGET_MODEL: 0.071,
   TARGET_SUB:   0.033,
   TARGET_PRICE: 0.137,
   TARGET_DET:   0.030,
+
+  // Posiciones verticales (en % del alto)
   Y_SUB:    0.317,
   Y_PRICE:  0.440,
-  Y_DETAIL: 0.590
+  Y_DETAIL: 0.590,
+
+  // ⬇️ NUEVO: Offset para subir/bajar “Marca y Modelo”
+  // NEGATIVO = SUBE | POSITIVO = BAJA (proporción del alto H)
+  MODEL_OFFSET: -0.030
 };
 
 // --- Utilidades de formato ---
@@ -33,13 +42,11 @@ const ensureCc = (s) => {
 const splitEquipamiento = (txt) =>
   (txt || "").split(",").map(s => s.trim()).filter(Boolean);
 
+// Estilo E1 (como el original N400)
 const buildE1Lines = (kmTxt, items) => {
   const L = [];
-  if (kmTxt && items.length) {
-    L.push(`${kmTxt} , ${items[0]}`); items = items.slice(1);
-  } else if (kmTxt) {
-    L.push(kmTxt);
-  }
+  if (kmTxt && items.length) { L.push(`${kmTxt} , ${items[0]}`); items = items.slice(1); }
+  else if (kmTxt) { L.push(kmTxt); }
   for (let i=0;i<items.length;i+=2){
     if (i+1 < items.length) L.push(`${items[i]} , ${items[i+1]}`);
     else L.push(items[i]);
@@ -80,40 +87,38 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   const canvas = document.getElementById("lienzo");
   const ctx = canvas.getContext("2d");
 
-  // Indicador de estado
+  // Mensaje de estado
   const status = document.createElement("div");
   status.style.marginTop = "8px";
   status.style.fontSize = "12px";
   status.style.color = "#8a8f98";
   document.querySelector(".form-card .actions").appendChild(status);
 
-  // Carga de plantilla con manejo de errores
+  // Carga plantilla con manejo de error
   const plantilla = new Image();
-  plantilla.crossOrigin = "anonymous"; // seguro en Pages del mismo origen
+  plantilla.crossOrigin = "anonymous";
   plantilla.src = TEMPLATE_SRC;
 
   const loaded = await new Promise((resolve) => {
     let done = false;
     plantilla.onload = () => { done = true; resolve(true); };
     plantilla.onerror = () => { if (!done) resolve(false); };
-    // por si el navegador cachéa estados raros:
     setTimeout(() => { if (!done && plantilla.complete && plantilla.naturalWidth) resolve(true); }, 1000);
   });
 
   if (!loaded) {
     status.style.color = "#e67c7c";
-    status.textContent = "⚠️ No se pudo cargar la plantilla. Verifica que exista en /plantilla/plantilla_franval.png";
+    status.textContent = "⚠️ No se pudo cargar la plantilla. Verifica /plantilla/plantilla_franval.png";
     btnGenerar.disabled = true;
     btnDescargar.disabled = true;
-    console.error("No se encontró la plantilla en:", TEMPLATE_SRC);
-    return; // Evita que siga sin base
+    return;
   }
 
-  // Ajusta el canvas al tamaño nativo de la plantilla
+  // Tamaño nativo
   canvas.width = plantilla.naturalWidth;
   canvas.height = plantilla.naturalHeight;
 
-  // Dibuja base y habilita botones
+  // Dibuja base
   ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
   btnGenerar.disabled = false;
   btnDescargar.disabled = true;
@@ -151,7 +156,13 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
     ctx.fillStyle = "#fff";
     let r = fitFont(ctx, modelo || " ", maxwModel, bannerHeight - 6, GEO.TARGET_MODEL * H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
-    const yModel = bannerTop + (bannerHeight - r.height)/2 + r.height * 0.85 + GEO.MODEL_OFFSET * H;
+
+    // ⬇️ AQUÍ ESTÁ EL AJUSTE DE ALTURA
+    const yModel =
+      bannerTop
+      + (bannerHeight - (r.size)) / 2
+      + r.size * 0.85
+      + GEO.MODEL_OFFSET * H; // NEGATIVO = SUBE
 
     const xModel = (W - ctx.measureText(modelo).width) / 2;
     ctx.fillText(modelo, xModel, yModel);
@@ -187,28 +198,23 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   }
 
   function descargar(){
-    try{
-      const url = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "publicacion_franval.png";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    }catch(e){
-      alert("No se pudo descargar. Revisa la consola del navegador.");
-      console.error(e);
-    }
+    const url = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "publicacion_franval.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   function limpiar(){
-    modeloEl.value = "";
-    anioEl.value = "";
-    cilindradaEl.value = "";
-    versionEl.value = "";
-    precioEl.value = "";
-    kmEl.value = "";
-    equipamientoEl.value = "";
+    document.getElementById("modelo").value = "";
+    document.getElementById("anio").value = "";
+    document.getElementById("cilindrada").value = "";
+    document.getElementById("version").value = "";
+    document.getElementById("precio").value = "";
+    document.getElementById("km").value = "";
+    document.getElementById("equipamiento").value = "";
     btnDescargar.disabled = true;
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
