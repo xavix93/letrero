@@ -52,9 +52,16 @@
           <small>Se formatea a 31.000 km</small>
         </label>
 
+        <!-- Selector de categoría -->
         <div class="field field-wide">
-          <span>Equipamiento (selección tipo chips)</span>
+          <span>Equipamiento (elige categoría y marca los chips)</span>
+          <div class="segmented" id="catTabs">
+            <button type="button" class="seg-btn active" data-cat="BASICO">BÁSICO</button>
+            <button type="button" class="seg-btn" data-cat="MEDIO">MEDIO</button>
+            <button type="button" class="seg-btn" data-cat="TOTAL">TOTAL</button>
+          </div>
           <div id="chips" class="chips"></div>
+          <small>Se arma en varias líneas (E1): “KM , primer ítem” y luego pares.</small>
         </div>
       </div>
 
