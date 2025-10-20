@@ -1,9 +1,8 @@
-// ========== Franval · Tabs/Accordion (una categoría visible) ==========
-
+// ========== FRANVAL · Tabs + selección persistente + FULL especial (F1) ==========
+const VERSION = "2025-10-20-f1-final";
 const TEMPLATE_SRC = "plantilla/plantilla_franval.png";
-const VERSION = "accordion-1";
 
-// Geometría (igual que tenías)
+// Geometría (mantiene tu layout)
 const GEO = {
   BANNER_LEFT:   0.12,
   BANNER_RIGHT:  0.88,
@@ -27,7 +26,7 @@ const GEO = {
   MODEL_OFFSET: -0.065
 };
 
-// Equipamiento (ojo: pestaña FULL con chip “Full” especial)
+// Equipamiento (FULL con chip “Full” especial)
 const EQUIP_BASICO = [
   "Aire Acondicionado",
   "Alza Vidrios",
@@ -49,7 +48,7 @@ const EQUIP_FULL = [
   "Modo Sport",
   "AppleCar/AndroidAuto",
   "Asientos de Cuero",
-  "Full" // ← especial
+  "Full" // especial
 ];
 
 // Utilidades
@@ -62,21 +61,46 @@ const ensureCc = (s) => {
   return /cc\b/i.test(t) ? t : (t ? `${t} cc` : "");
 };
 
-// E1a estándar, pero luego aplicaremos la regla de “Full solo al final”
-const buildE1LinesBase = (kmTxt, items) => {
+// E1a base (luego aplicamos la regla FULL si corresponde)
+function buildE1LinesBase(kmTxt, items){
   const L = [];
   if (kmTxt && items.length) { L.push(`${kmTxt} , ${items[0]}`); items = items.slice(1); }
   else if (kmTxt) { L.push(kmTxt); }
-  for (let i = 0; i < items.length; i += 2) {
+  for (let i = 0; i < items.length; i += 2){
     if (i + 1 < items.length) L.push(`${items[i]} , ${items[i + 1]}`);
     else L.push(items[i]);
   }
   return L;
-};
+}
 
-// Click robusto
+// Ajuste de tipografía
+function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
+  const safeText = text && text.length ? text : " ";
+  let size = Math.max(targetPx, minPx);
+  ctx.font = `600 ${size}px Inter, Arial, sans-serif`;
+  let width = ctx.measureText(safeText).width;
+  let m = ctx.measureText(safeText);
+  let height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+
+  while ((width > maxWidth || (maxHeight && height > maxHeight)) && size > minPx) {
+    size -= 2;
+    ctx.font = `600 ${size}px Inter, Arial, sans-serif`;
+    width = ctx.measureText(safeText).width;
+    m = ctx.measureText(safeText);
+    height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  }
+  return { size, width, height, text: safeText };
+}
+
+// Click robusto (PC + iPhone)
 function bindSmartClick(el, handler){
-  const wrap = (ev) => { ev.preventDefault(); ev.stopPropagation(); handler(ev); };
+  let lock = false;
+  const wrap = (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    if (lock) return;
+    lock = true;
+    try { handler(ev); } finally { setTimeout(() => (lock = false), 50); }
+  };
   el.addEventListener("pointerup", wrap, {passive:false});
   el.addEventListener("click",     wrap, {passive:false});
   el.addEventListener("touchend",  wrap, {passive:false});
@@ -84,7 +108,7 @@ function bindSmartClick(el, handler){
 }
 
 (function main(){
-  // Campos
+  // Inputs
   const modeloEl = document.getElementById("modelo");
   const anioEl = document.getElementById("anio");
   const cilindradaEl = document.getElementById("cilindrada");
@@ -92,7 +116,7 @@ function bindSmartClick(el, handler){
   const precioEl = document.getElementById("precio");
   const kmEl = document.getElementById("km");
 
-  // Tabs y paneles
+  // Tabs & Panels
   const tabs = document.getElementById("catTabs");
   const panelBasico = document.getElementById("panelBasico");
   const panelMedio  = document.getElementById("panelMedio");
@@ -102,68 +126,75 @@ function bindSmartClick(el, handler){
   const chipsMedio  = document.getElementById("chipsMedio");
   const chipsFull   = document.getElementById("chipsFull");
 
-  // Selección actual SOLO de la categoría visible
-  let selected = new Set();
+  // Selección GLOBAL (se mantiene entre pestañas) — Opción A
+  const selected = new Set();
+
+  // Estado de pestaña actual
   let currentCat = "BASICO";
 
-  const btnGenerar = document.getElementById("btnGenerar");
-  const btnDescargar = document.getElementById("btnDescargar");
-  const btnLimpiar = document.getElementById("btnLimpiar");
-  const status = document.getElementById("status");
-
-  const canvas = document.getElementById("lienzo");
-  const ctx = canvas.getContext("2d");
-
-  // Render de chips para la categoría activa
-  function renderChips(container, list){
+  // Render chips de una categoría (respetando lo ya seleccionado)
+  function renderChips(container, list, isFullPanel=false){
     container.innerHTML = "";
-    selected.clear(); // acordeón: al cambiar de panel, se reinicia la selección
     list.forEach(label => {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "chip";
       chip.textContent = label;
+      if (selected.has(label)) chip.classList.add("active");
+
       bindSmartClick(chip, () => {
-        // Regla especial: si estamos en FULL y el usuario toca el chip “Full”
-        if (currentCat === "FULL" && label.toLowerCase() === "full"){
-          // “Full” queda solo: limpiar todo y marcar solo Full
-          selected.clear();
-          // quita visual a todos
-          container.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-          // marca Full
-          selected.add("Full");
-          chip.classList.add("active");
+        // Regla especial: si estamos en FULL y tocan “Full”
+        if (isFullPanel && label.toLowerCase() === "full"){
+          selected.clear();                  // quitar TODO
+          selected.add("Full");              // dejar solo Full
+          // refrescar visual de los 3 paneles según selección actual
+          refreshAllChips();
           return;
         }
+        // Si “Full” estaba seleccionado y ahora se elige otra cosa → quitar Full
+        if (selected.has("Full") && !(isFullPanel && label.toLowerCase() === "full")){
+          selected.delete("Full");
+        }
 
-        // Si ya está, lo saco; si no, lo agrego
         if (selected.has(label)) { selected.delete(label); chip.classList.remove("active"); }
         else { selected.add(label); chip.classList.add("active"); }
       });
+
       container.appendChild(chip);
     });
   }
 
-  // Pintar primera categoría
-  renderChips(chipsBasico, EQUIP_BASICO);
+  function refreshAllChips(){
+    renderChips(chipsBasico, EQUIP_BASICO, false);
+    renderChips(chipsMedio,  EQUIP_MEDIO,  false);
+    renderChips(chipsFull,   EQUIP_FULL,   true);
+  }
 
-  // Cambiar panel visible
+  // Mostrar panel (solo uno a la vez)
   function showPanel(cat){
     currentCat = cat;
-    // tabs visual
     tabs.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
-    tabs.querySelector(`.seg-btn[data-cat="${cat}"]`).classList.add("active");
-    // paneles
+    const btn = tabs.querySelector(`.seg-btn[data-cat="${cat}"]`);
+    if (btn) btn.classList.add("active");
+
     [panelBasico, panelMedio, panelFull].forEach(p => p.classList.remove("show"));
-    if (cat === "BASICO"){ panelBasico.classList.add("show"); renderChips(chipsBasico, EQUIP_BASICO); }
-    if (cat === "MEDIO"){ panelMedio.classList.add("show"); renderChips(chipsMedio, EQUIP_MEDIO); }
-    if (cat === "FULL"){ panelFull.classList.add("show"); renderChips(chipsFull, EQUIP_FULL); }
+    if (cat === "BASICO") { panelBasico.classList.add("show"); }
+    if (cat === "MEDIO")  { panelMedio.classList.add("show"); }
+    if (cat === "FULL")   { panelFull.classList.add("show"); }
   }
 
   // Eventos de tabs
   tabs.querySelectorAll(".seg-btn").forEach(btn => {
     bindSmartClick(btn, () => showPanel(btn.dataset.cat));
   });
+
+  // Pintar chips al iniciar
+  refreshAllChips();
+  showPanel("BASICO");
+
+  // Canvas
+  const canvas = document.getElementById("lienzo");
+  const ctx = canvas.getContext("2d");
 
   // Cargar plantilla
   const plantilla = new Image();
@@ -173,33 +204,20 @@ function bindSmartClick(el, handler){
     canvas.width = plantilla.naturalWidth;
     canvas.height = plantilla.naturalHeight;
     ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
-    status.textContent = `✅ Plantilla cargada · ${VERSION}`;
+    const status = document.getElementById("status");
+    if (status) status.textContent = `✅ Plantilla cargada · ${VERSION}`;
   };
   plantilla.onerror = () => {
-    status.style.color = "#e67c7c";
-    status.textContent = "⚠️ No se pudo cargar /plantilla/plantilla_franval.png";
-    btnGenerar.disabled = true; btnDescargar.disabled = true;
+    const status = document.getElementById("status");
+    if (status){
+      status.style.color = "#e67c7c";
+      status.textContent = "⚠️ No se pudo cargar /plantilla/plantilla_franval.png";
+    }
+    document.getElementById("btnGenerar").disabled = true;
+    document.getElementById("btnDescargar").disabled = true;
   };
 
-  // Ajuste de fuente
-  function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
-    const safeText = text && text.length ? text : " ";
-    let size = Math.max(targetPx, minPx);
-    ctx.font = `600 ${size}px Inter, Arial, sans-serif`;
-    let width = ctx.measureText(safeText).width;
-    let m = ctx.measureText(safeText);
-    let height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
-
-    while ((width > maxWidth || (maxHeight && height > maxHeight)) && size > minPx) {
-      size -= 2;
-      ctx.font = `600 ${size}px Inter, Arial, sans-serif`;
-      width = ctx.measureText(safeText).width;
-      m = ctx.measureText(safeText);
-      height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
-    }
-    return { size, width, height, text: safeText };
-  }
-
+  // Generar imagen
   function generar(){
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
@@ -214,86 +232,51 @@ function bindSmartClick(el, handler){
     const precioTxt = fmtPrecio(precioEl.value);
     const kmTxt = fmtKm(kmEl.value);
 
-    // Items elegidos en la categoría visible
-    let items = Array.from(selected);
-
-    // Regla “Full”: si el set contiene “Full” (en FULL), forzamos “solo y al final”
+    const items = Array.from(selected);
     const hasFull = items.some(s => s.toLowerCase() === "full");
-    if (currentCat === "FULL" && hasFull){
-      // ignora cualquier otro seleccionado
-      items = ["Full"];
-      // E1a especial: km va SOLO en su línea y luego “Full” en la última
-      const lines = [];
-      if (kmTxt) lines.push(kmTxt);
-      lines.push("Full");
 
-      // Render directo y salimos
-      // Modelo
-      ctx.fillStyle = "#fff";
-      let r = fitFont(ctx, modelo, maxwModel, bannerHeight-6, GEO.TARGET_MODEL*H);
-      ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
-      const yModel = bannerTop + (bannerHeight-r.size)/2 + r.size*0.85 + GEO.MODEL_OFFSET*H;
-      ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, yModel);
-
-      // Subtítulo
-      ctx.fillStyle = "#000";
-      r = fitFont(ctx, subtitle, GEO.MAXW_SUB*W, null, GEO.TARGET_SUB*H);
-      ctx.font = `700 ${r.size}px Inter, Arial, sans-serif`;
-      ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, GEO.Y_SUB*H);
-
-      // Precio
-      r = fitFont(ctx, precioTxt, GEO.MAXW_PRICE*W, null, GEO.TARGET_PRICE*H);
-      ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
-      ctx.fillText(precioTxt, (W-ctx.measureText(precioTxt).width)/2, GEO.Y_PRICE*H);
-
-      // Detalle: km (si hay) y luego Full
-      let y = GEO.Y_DETAIL*H;
-      for (const line of lines){
-        r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
-        ctx.font = `400 ${r.size}px Inter, Arial, sans-serif`;
-        ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, y);
-        y += r.size * 1.30;
-      }
-
-      btnDescargar.disabled = false;
-      status.style.color = "#8bd48b";
-      status.textContent = `✅ Previsualización lista (FULL solo) · ${VERSION}`;
-      return;
-    }
-
-    // E1a normal para Básico o Medio
-    const detailLines = buildE1LinesBase(kmTxt, items);
-
-    // Modelo
+    // Render cabeceras
     ctx.fillStyle = "#fff";
     let r = fitFont(ctx, modelo, maxwModel, bannerHeight-6, GEO.TARGET_MODEL*H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
     const yModel = bannerTop + (bannerHeight-r.size)/2 + r.size*0.85 + GEO.MODEL_OFFSET*H;
     ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, yModel);
 
-    // Subtítulo
     ctx.fillStyle = "#000";
     r = fitFont(ctx, subtitle, GEO.MAXW_SUB*W, null, GEO.TARGET_SUB*H);
     ctx.font = `700 ${r.size}px Inter, Arial, sans-serif`;
     ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, GEO.Y_SUB*H);
 
-    // Precio
     r = fitFont(ctx, precioTxt, GEO.MAXW_PRICE*W, null, GEO.TARGET_PRICE*H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
     ctx.fillText(precioTxt, (W-ctx.measureText(precioTxt).width)/2, GEO.Y_PRICE*H);
 
-    // Detalle E1a
+    // Detalle: FULL especial o E1a normal
     let y = GEO.Y_DETAIL*H;
-    for (const line of detailLines){
-      r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
-      ctx.font = `400 ${r.size}px Inter, Arial, sans-serif`;
-      ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, y);
-      y += r.size * 1.30;
+    if (hasFull){
+      // km solo (si existe) y luego “Full” solo al final
+      const lines = [];
+      if (kmTxt) lines.push(kmTxt);
+      lines.push("Full");
+      for (const line of lines){
+        r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
+        ctx.font = `400 ${r.size}px Inter, Arial, sans-serif`;
+        ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, y);
+        y += r.size * 1.30;
+      }
+    } else {
+      const detailLines = buildE1LinesBase(kmTxt, items);
+      for (const line of detailLines){
+        r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
+        ctx.font = `400 ${r.size}px Inter, Arial, sans-serif`;
+        ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, y);
+        y += r.size * 1.30;
+      }
     }
 
-    btnDescargar.disabled = false;
-    status.style.color = "#8bd48b";
-    status.textContent = `✅ Previsualización lista (${currentCat}) · ${VERSION}`;
+    const status = document.getElementById("status");
+    document.getElementById("btnDescargar").disabled = false;
+    if (status){ status.style.color = "#8bd48b"; status.textContent = `✅ Previsualización lista · ${VERSION}`; }
   }
 
   function descargar(){
@@ -310,32 +293,18 @@ function bindSmartClick(el, handler){
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
-    selected.clear();
-    showPanel("BASICO");
-    btnDescargar.disabled = true;
+    selected.clear();      // limpiar selección global
+    refreshAllChips();     // refrescar visual
+    showPanel("BASICO");   // volver a básico
+
+    const status = document.getElementById("status");
+    document.getElementById("btnDescargar").disabled = true;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(plantilla,0,0,canvas.width,canvas.height);
-    status.style.color = "";
-    status.textContent = `Plantilla cargada. Completa y genera. · ${VERSION}`;
+    if (status){ status.style.color = ""; status.textContent = `Plantilla cargada. Completa y genera. · ${VERSION}`; }
   }
 
-  // Hooks
-  bindSmartClick(btnGenerar, generar);
-  bindSmartClick(btnDescargar, descargar);
-  bindSmartClick(btnLimpiar, limpiar);
-
-  // Iniciar en BÁSICO
-  function showPanel(cat){ /* definida arriba */ }
-  // Re-define showPanel aquí para que exista:
-  window.showPanel = (cat) => {
-    currentCat = cat;
-    tabs.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
-    tabs.querySelector(`.seg-btn[data-cat="${cat}"]`).classList.add("active");
-    [panelBasico, panelMedio, panelFull].forEach(p => p.classList.remove("show"));
-    if (cat === "BASICO"){ panelBasico.classList.add("show"); renderChips(chipsBasico, EQUIP_BASICO); }
-    if (cat === "MEDIO"){ panelMedio.classList.add("show"); renderChips(chipsMedio, EQUIP_MEDIO); }
-    if (cat === "FULL"){ panelFull.classList.add("show"); renderChips(chipsFull, EQUIP_FULL); }
-  };
-  // Render init
-  showPanel("BASICO");
+  bindSmartClick(document.getElementById("btnGenerar"), generar);
+  bindSmartClick(document.getElementById("btnDescargar"), descargar);
+  bindSmartClick(document.getElementById("btnLimpiar"), limpiar);
 })();
