@@ -51,19 +51,24 @@ body{
 .field input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--ring)}
 .field small{color:var(--muted); font-size:11px}
 
+/* Segmentado categorías */
+.segmented{display:flex; gap:8px; margin:6px 0 4px}
+.seg-btn{
+  padding:8px 12px; border-radius:10px; border:1px solid var(--border);
+  background:#101114; color:#fff; cursor:pointer; font-size:13px;
+}
+.seg-btn:hover{background:#16171c}
+.seg-btn.active{background:var(--accent); border-color:transparent; box-shadow:0 0 0 3px var(--ring)}
+
 /* Chips rojos */
 .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px}
 .chip{
   border:1px solid var(--border);
   background:#101114; color:#fff; padding:8px 10px; border-radius:999px;
-  cursor:pointer; font-size:13px; user-select:none;
-  transition:all .15s ease;
+  cursor:pointer; font-size:13px; user-select:none; transition:all .15s ease;
 }
 .chip:hover{border-color:#3a3c44}
-.chip.active{
-  background:var(--accent); border-color:transparent; color:#fff;
-  box-shadow:0 0 0 3px var(--ring);
-}
+.chip.active{background:var(--accent); border-color:transparent; color:#fff; box-shadow:0 0 0 3px var(--ring)}
 
 .actions{display:flex; gap:10px; margin-top:8px}
 .btn{
