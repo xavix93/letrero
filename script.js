@@ -3,7 +3,7 @@ const TEMPLATE_SRC = "plantilla/plantilla_franval.png"; // Debe existir en tu re
 
 const GEO = {
   /* ...lo que ya tienes... */
-  MODEL_OFFSET: -0.010, // NEGATIVO = SUBE | POSITIVO = BAJA (proporción del alto H)
+  MODEL_OFFSET: -0.030, // NEGATIVO = SUBE | POSITIVO = BAJA (proporción del alto H)
   BANNER_LEFT:   0.12,
   BANNER_RIGHT:  0.88,
   BANNER_TOP:    0.24,
