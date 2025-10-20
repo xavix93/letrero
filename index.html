@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <title>FRANVAL · Generador de Publicación</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -52,21 +55,36 @@
           <small>Se formatea a 31.000 km</small>
         </label>
 
-        <!-- Selector de categoría -->
-        <div class="equip-section">
-  <div class="equip-title">BÁSICO</div>
-  <div id="chipsBasico" class="chips"></div>
-</div>
+        <!-- Selector de categoría + panel desplegable -->
+        <div class="field field-wide">
+          <span>Equipamiento (elige categoría y marca chips)</span>
 
-<div class="equip-section">
-  <div class="equip-title">MEDIO</div>
-  <div id="chipsMedio" class="chips"></div>
-</div>
+          <div class="segmented" id="catTabs">
+            <button type="button" class="seg-btn active" data-cat="BASICO">BÁSICO</button>
+            <button type="button" class="seg-btn" data-cat="MEDIO">MEDIO</button>
+            <button type="button" class="seg-btn" data-cat="FULL">FULL</button>
+          </div>
 
-<div class="equip-section">
-  <div class="equip-title">FULL</div>
-  <div id="chipsFull" class="chips"></div>
-</div>
+          <!-- Paneles (solo uno visible a la vez) -->
+          <div id="panelBasico" class="panel show">
+            <div class="equip-title">BÁSICO</div>
+            <div id="chipsBasico" class="chips"></div>
+          </div>
+
+          <div id="panelMedio" class="panel">
+            <div class="equip-title">MEDIO</div>
+            <div id="chipsMedio" class="chips"></div>
+          </div>
+
+          <div id="panelFull" class="panel">
+            <div class="equip-title">FULL</div>
+            <div id="chipsFull" class="chips"></div>
+            <small class="warn">Si seleccionas <b>Full</b>, se desactivará todo lo demás y “Full” irá solo y al final.</small>
+          </div>
+
+          <small>Formato E1a: “KM , primer ítem” y luego pares. Con “Full”, el km va solo y “Full” queda en la última línea.</small>
+        </div>
+      </div>
 
       <div class="actions">
         <button id="btnGenerar" class="btn primary">Generar previsualización</button>
@@ -87,8 +105,7 @@
     <small>© FRANVAL · Generador de Publicaciones</small>
   </footer>
 
-<!-- al final del body -->
-<script src="script.v3.js?v=2025-10-20-1" defer></script>
-
+  <!-- cache-busting -->
+  <script src="script.js?v=2025-10-20-accordion-1" defer></script>
 </body>
 </html>
