@@ -2,6 +2,8 @@
 const TEMPLATE_SRC = "plantilla/plantilla_franval.png"; // Debe existir en tu repo
 
 const GEO = {
+  /* ...lo que ya tienes... */
+  MODEL_OFFSET: -0.010, // NEGATIVO = SUBE | POSITIVO = BAJA (proporción del alto H)
   BANNER_LEFT:   0.12,
   BANNER_RIGHT:  0.88,
   BANNER_TOP:    0.24,
@@ -149,7 +151,8 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
     ctx.fillStyle = "#fff";
     let r = fitFont(ctx, modelo || " ", maxwModel, bannerHeight - 6, GEO.TARGET_MODEL * H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
-    const yModel = bannerTop + (bannerHeight - r.height)/2 + r.height * 0.85; // compensación métrica
+    const yModel = bannerTop + (bannerHeight - r.height)/2 + r.height * 0.85 + GEO.MODEL_OFFSET * H;
+
     const xModel = (W - ctx.measureText(modelo).width) / 2;
     ctx.fillText(modelo, xModel, yModel);
 
