@@ -51,7 +51,7 @@ body{
 .field input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--ring)}
 .field small{color:var(--muted); font-size:11px}
 
-/* Selector de categoría (tabs/segmented) */
+/* Tabs */
 .segmented{display:flex; gap:8px; margin:6px 0 8px}
 .seg-btn{
   padding:8px 12px; border-radius:10px; border:1px solid var(--border);
@@ -60,7 +60,7 @@ body{
 .seg-btn:hover{background:#16171c}
 .seg-btn.active{background:var(--accent); border-color:transparent; box-shadow:0 0 0 3px var(--ring)}
 
-/* Paneles (accordion-like): solo uno visible */
+/* Paneles (solo uno visible) */
 .panel{display:none}
 .panel.show{display:block}
 
@@ -69,6 +69,7 @@ body{
   font-weight:700; opacity:.9;
 }
 
+/* Chips */
 .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px}
 .chip{
   border:1px solid var(--border);
