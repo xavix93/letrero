@@ -9,7 +9,7 @@ const GEO = {
   BANNER_HEIGHT: 0.06,
 
   // Áreas de ancho útil
-  MAXW_MODEL: 1.10 * (0.88 - 0.12),
+  MAXW_MODEL: 1.20 * (0.88 - 0.12),
   MAXW_SUB:   0.72,
   MAXW_PRICE: 0.86,
   MAXW_DET:   0.82,
