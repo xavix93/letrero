@@ -8,7 +8,7 @@ const GEO = {
   BANNER_TOP:    0.24,
   BANNER_HEIGHT: 0.06,
 
-  // ⚠️ IMPORTANTE: punto decimal, no coma
+  // Usa punto decimal (no coma)
   MAXW_MODEL: 1.20 * (0.88 - 0.12),
   MAXW_SUB:   0.72,
   MAXW_PRICE: 0.86,
@@ -26,7 +26,7 @@ const GEO = {
   MODEL_OFFSET: -0.065
 };
 
-// === Equipamiento por CATEGORÍA ===
+// === Equipamiento por CATEGORÍA (tu lista) ===
 const EQUIP_BASICO = [
   "Aire Acondicionado",
   "Alza Vidrios",
@@ -103,14 +103,16 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   const precioEl = document.getElementById("precio");
   const kmEl = document.getElementById("km");
 
-  // Categorías
+  // Tabs / Chips
   const tabs = document.getElementById("catTabs");
   const chipsEl = document.getElementById("chips");
-  let currentCat = "BASICO";     // por defecto
+
+  // Estado de pestaña actual
+  let currentCat = "BASICO";
   let currentItems = EQUIP_BASICO;
 
-  // Selección de chips de la categoría actual
-  let selected = new Set();
+  // Selección GLOBAL (Opción 2: se mantiene al cambiar de pestaña)
+  const selected = new Set();
 
   // Botones
   const btnGenerar = document.getElementById("btnGenerar");
@@ -144,16 +146,26 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
   status.textContent = "✅ Plantilla cargada";
 
-  // Render de chips según categoría
+  // --- Helpers de UI (compatibles con iPhone) ---
+  function bindPointerClick(el, handler){
+    // pointerup funciona para mouse y touch (iOS/Android)
+    el.addEventListener("pointerup", (ev) => {
+      // Evita doble disparo raro
+      if (ev.pointerType === "mouse" && ev.button !== 0) return;
+      handler(ev);
+    });
+  }
+
+  // Render de chips de la categoría visible
   function renderChips(list){
     chipsEl.innerHTML = "";
-    selected.clear(); // en Opción A reiniciamos al cambiar categoría
     list.forEach(label => {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "chip";
       chip.textContent = label;
-      chip.addEventListener("click", () => {
+      if (selected.has(label)) chip.classList.add("active");
+      bindPointerClick(chip, () => {
         if (selected.has(label)) { selected.delete(label); chip.classList.remove("active"); }
         else { selected.add(label); chip.classList.add("active"); }
       });
@@ -162,14 +174,16 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   }
   renderChips(currentItems);
 
-  // Cambio de categoría (tabs)
-  tabs.addEventListener("click", (e) => {
-    const btn = e.target.closest(".seg-btn"); if (!btn) return;
-    tabs.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    currentCat = btn.dataset.cat;
-    currentItems = currentCat === "BASICO" ? EQUIP_BASICO : currentCat === "MEDIO" ? EQUIP_MEDIO : EQUIP_TOTAL;
-    renderChips(currentItems);
+  // Vincular eventos a cada pestaña (sin closest, más compatible)
+  tabs.querySelectorAll(".seg-btn").forEach(btn => {
+    bindPointerClick(btn, () => {
+      tabs.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentCat = btn.dataset.cat;
+      currentItems = currentCat === "BASICO" ? EQUIP_BASICO : currentCat === "MEDIO" ? EQUIP_MEDIO : EQUIP_TOTAL;
+      // Opción 2: NO limpiamos 'selected', sólo re-renderizamos esta categoría
+      renderChips(currentItems);
+    });
   });
 
   function generar(){
@@ -187,11 +201,11 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
     const precioTxt = fmtPrecio(precioEl.value);
     const kmTxt = fmtKm(kmEl.value);
 
-    // Items seleccionados de la categoría actual
+    // Items seleccionados (de cualquier categoría)
     const items = Array.from(selected);
     const detailLines = buildE1Lines(kmTxt, items);
 
-    // Modelo (blanco)
+    // Modelo
     ctx.fillStyle = "#fff";
     let r = fitFont(ctx, modelo, maxwModel, bannerHeight-6, GEO.TARGET_MODEL*H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
@@ -209,7 +223,7 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
     ctx.fillText(precioTxt, (W-ctx.measureText(precioTxt).width)/2, GEO.Y_PRICE*H);
 
-    // Detalle E1a
+    // Detalle (E1a)
     let y = GEO.Y_DETAIL*H;
     for (const line of detailLines){
       r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
@@ -220,7 +234,7 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
 
     btnDescargar.disabled = false;
     status.style.color = "#8bd48b";
-    status.textContent = `✅ Previsualización lista (${currentCat.toLowerCase()})`;
+    status.textContent = `✅ Previsualización lista (mezcla de categorías)`;
   }
 
   function descargar(){
@@ -234,10 +248,9 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
 
   function limpiar(){
     ["modelo","anio","cilindrada","version","precio","km"].forEach(id => document.getElementById(id).value = "");
-    // reset categoría a BASICO
-    tabs.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
-    tabs.querySelector('.seg-btn[data-cat="BASICO"]').classList.add("active");
-    currentCat = "BASICO"; currentItems = EQUIP_BASICO; renderChips(currentItems);
+    selected.clear(); // en Opción 2, limpiar borra todo seleccionado
+    // Mantener pestaña actual, sólo re-render chips visibles
+    renderChips(currentItems);
     btnDescargar.disabled = true;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(plantilla,0,0,canvas.width,canvas.height);
@@ -245,7 +258,7 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
     status.style.color = "";
   }
 
-  btnGenerar.addEventListener("click", generar);
-  btnDescargar.addEventListener("click", descargar);
-  btnLimpiar.addEventListener("click", limpiar);
+  bindPointerClick(btnGenerar, generar);
+  bindPointerClick(btnDescargar, descargar);
+  bindPointerClick(btnLimpiar, limpiar);
 })();
