@@ -27,7 +27,7 @@ const GEO = {
 
   // ⬇️ NUEVO: Offset para subir/bajar “Marca y Modelo”
   // NEGATIVO = SUBE | POSITIVO = BAJA (proporción del alto H)
-  MODEL_OFFSET: -0.070
+  MODEL_OFFSET: -0.068
 };
 
 // --- Utilidades de formato ---
