@@ -18,14 +18,14 @@ const GEO = {
   TARGET_PRICE: 0.137,
   TARGET_DET:   0.030,
 
-  Y_SUB:    0.250,
+  Y_SUB:    0.305,
   Y_PRICE:  0.440,
   Y_DETAIL: 0.500,
 
   MODEL_OFFSET: -0.065
 };
 
-// === Equipamiento por CATEGORÍA ===
+// === Equipamiento por CATEGORÍA (con “FULL”) ===
 const EQUIP_BASICO = [
   "Aire Acondicionado",
   "Alza Vidrios",
@@ -33,7 +33,6 @@ const EQUIP_BASICO = [
   "ABS",
   "Airbags"
 ];
-
 const EQUIP_MEDIO = [
   "4x4",
   "Radio Con Pantalla",
@@ -41,8 +40,7 @@ const EQUIP_MEDIO = [
   "Diesel",
   "Automatico"
 ];
-
-const EQUIP_FULL = [ // renombrado desde "TOTAL"
+const EQUIP_FULL = [
   "Control Crucero",
   "Climatizador",
   "Sunroof",
@@ -93,12 +91,11 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   return { size, width, height, text: safeText };
 }
 
-// === Compat iPhone/PC: pointerup ===
-function bindPointerClick(el, handler){
-  el.addEventListener("pointerup", (ev) => {
-    if (ev.pointerType === "mouse" && ev.button !== 0) return;
-    handler(ev);
-  });
+// === Click handler robusto (PC + iPhone) ===
+function bindSmartClick(el, handler){
+  const h = (ev) => { ev.preventDefault(); ev.stopPropagation(); handler(ev); };
+  el.addEventListener("pointerup", h, {passive:false});
+  el.addEventListener("click", h, {passive:false}); // fallback por si pointer no dispara
 }
 
 (async function main(){
@@ -155,11 +152,11 @@ function bindPointerClick(el, handler){
     container.innerHTML = "";
     list.forEach(label => {
       const chip = document.createElement("button");
-      chip.type = "button";
+      chip.type = "button"; // evita submits si hay <form>
       chip.className = "chip";
       chip.textContent = label;
       if (selected.has(label)) chip.classList.add("active");
-      bindPointerClick(chip, () => {
+      bindSmartClick(chip, () => {
         if (selected.has(label)) { selected.delete(label); chip.classList.remove("active"); }
         else { selected.add(label); chip.classList.add("active"); }
       });
@@ -167,7 +164,7 @@ function bindPointerClick(el, handler){
     });
   }
 
-  // Pintar las tres secciones
+  // Pintar las tres secciones (visibles a la vez)
   renderChips(chipsBasico, EQUIP_BASICO);
   renderChips(chipsMedio,  EQUIP_MEDIO);
   renderChips(chipsFull,   EQUIP_FULL);
@@ -219,7 +216,7 @@ function bindPointerClick(el, handler){
 
     btnDescargar.disabled = false;
     status.style.color = "#8bd48b";
-    status.textContent = "✅ Previsualización lista (mezcla libre)";
+    status.textContent = `✅ Previsualización lista (seleccionados: ${items.length})`;
   }
 
   function descargar(){
@@ -246,7 +243,7 @@ function bindPointerClick(el, handler){
     status.style.color = "";
   }
 
-  bindPointerClick(btnGenerar, generar);
-  bindPointerClick(btnDescargar, descargar);
-  bindPointerClick(btnLimpiar, limpiar);
+  bindSmartClick(btnGenerar, generar);
+  bindSmartClick(btnDescargar, descargar);
+  bindSmartClick(btnLimpiar, limpiar);
 })();
