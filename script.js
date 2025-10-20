@@ -21,7 +21,7 @@ const GEO = {
   TARGET_DET:   0.030,
 
   // Posiciones verticales (en % del alto)
-  Y_SUB:    0.317,
+  Y_SUB:    0.150,
   Y_PRICE:  0.440,
   Y_DETAIL: 0.590,
 
