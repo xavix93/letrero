@@ -1,7 +1,8 @@
-// === Plantilla fija (en tu repo) ===
+// ========== Franval Generator v3 (PC + iPhone OK) ==========
+
+const VERSION = "v3-2025-10-20";
 const TEMPLATE_SRC = "plantilla/plantilla_franval.png";
 
-// === Geometría (clon N400, editable) ===
 const GEO = {
   BANNER_LEFT:   0.12,
   BANNER_RIGHT:  0.88,
@@ -25,7 +26,7 @@ const GEO = {
   MODEL_OFFSET: -0.065
 };
 
-// === Equipamiento por CATEGORÍA (con “FULL”) ===
+// === Equipamiento por CATEGORÍA (FULL renombrado) ===
 const EQUIP_BASICO = [
   "Aire Acondicionado",
   "Alza Vidrios",
@@ -50,17 +51,15 @@ const EQUIP_FULL = [
   "Full"
 ];
 
-// === Utilidades de formato ===
+// ===== Utils =====
 const onlyDigits = (s) => (s || "").toString().replace(/[^\d]/g, "");
-const clMiles = (n) => Number(n).toLocaleString("es-CL").replace(/\./g, ".");
+const clMiles = (n) => Number(n || 0).toLocaleString("es-CL").replace(/\./g, ".");
 const fmtPrecio = (v) => "$" + clMiles(onlyDigits(v) || "0");
 const fmtKm = (v) => clMiles(onlyDigits(v) || "0") + " km";
 const ensureCc = (s) => {
   const t = (s || "").trim();
   return /cc\b/i.test(t) ? t : (t ? `${t} cc` : "");
 };
-
-// === E1a: km en la 1ª línea con el primer ítem ===
 const buildE1Lines = (kmTxt, items) => {
   const L = [];
   if (kmTxt && items.length) { L.push(`${kmTxt} , ${items[0]}`); items = items.slice(1); }
@@ -71,35 +70,47 @@ const buildE1Lines = (kmTxt, items) => {
   }
   return L;
 };
-
-// === Ajuste de tipografía adaptable ===
 function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   const safeText = text && text.length ? text : " ";
   let size = Math.max(targetPx, minPx);
   ctx.font = `600 ${size}px Inter, Arial, sans-serif`;
   let width = ctx.measureText(safeText).width;
-  let metrics = ctx.measureText(safeText);
-  let height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+  let m = ctx.measureText(safeText);
+  let height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
 
   while ((width > maxWidth || (maxHeight && height > maxHeight)) && size > minPx) {
     size -= 2;
     ctx.font = `600 ${size}px Inter, Arial, sans-serif`;
     width = ctx.measureText(safeText).width;
-    metrics = ctx.measureText(safeText);
-    height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    m = ctx.measureText(safeText);
+    height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
   }
   return { size, width, height, text: safeText };
 }
 
-// === Click handler robusto (PC + iPhone) ===
+// ===== Click robusto (PC + iPhone + Android) =====
 function bindSmartClick(el, handler){
-  const h = (ev) => { ev.preventDefault(); ev.stopPropagation(); handler(ev); };
-  el.addEventListener("pointerup", h, {passive:false});
-  el.addEventListener("click", h, {passive:false}); // fallback por si pointer no dispara
+  let locked = false;
+  const wrap = (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    if (locked) return;
+    locked = true;
+    try { handler(ev); } finally {
+      setTimeout(() => locked = false, 50); // evita doble disparo
+    }
+  };
+  el.addEventListener("pointerup", wrap, {passive:false});
+  el.addEventListener("click",     wrap, {passive:false});
+  el.addEventListener("touchend",  wrap, {passive:false});
+  el.addEventListener("mouseup",   wrap, {passive:false});
 }
 
-(async function main(){
-  // Inputs
+(function main(){
+  // Verifica que el HTML que cargó realmente diga FULL (por si caché)
+  document.querySelectorAll(".equip-title").forEach(t => {
+    if (t.textContent.trim().toLowerCase() === "total") t.textContent = "FULL";
+  });
+
   const modeloEl = document.getElementById("modelo");
   const anioEl = document.getElementById("anio");
   const cilindradaEl = document.getElementById("cilindrada");
@@ -107,52 +118,30 @@ function bindSmartClick(el, handler){
   const precioEl = document.getElementById("precio");
   const kmEl = document.getElementById("km");
 
-  // Contenedores de chips
   const chipsBasico = document.getElementById("chipsBasico");
   const chipsMedio  = document.getElementById("chipsMedio");
   const chipsFull   = document.getElementById("chipsFull");
 
-  // Selección GLOBAL (mezcla libre)
-  const selected = new Set();
-
-  // Botones
   const btnGenerar = document.getElementById("btnGenerar");
   const btnDescargar = document.getElementById("btnDescargar");
   const btnLimpiar = document.getElementById("btnLimpiar");
   const status = document.getElementById("status");
 
-  // Canvas
+  // Sello de versión (para que veas que cargó este JS)
+  if (status) status.textContent = `🔧 Cargado ${VERSION} · Plantilla…`;
+
   const canvas = document.getElementById("lienzo");
   const ctx = canvas.getContext("2d");
 
-  // Cargar plantilla
-  const plantilla = new Image();
-  plantilla.crossOrigin = "anonymous";
-  plantilla.src = TEMPLATE_SRC;
-  const loaded = await new Promise((resolve) => {
-    plantilla.onload = () => resolve(true);
-    plantilla.onerror = () => resolve(false);
-  });
+  // Selección global
+  const selected = new Set();
 
-  if (!loaded) {
-    status.style.color = "#e67c7c";
-    status.textContent = "⚠️ No se pudo cargar /plantilla/plantilla_franval.png";
-    btnGenerar.disabled = true; btnDescargar.disabled = true;
-    return;
-  }
-
-  // Canvas nativo
-  canvas.width = plantilla.naturalWidth;
-  canvas.height = plantilla.naturalHeight;
-  ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
-  status.textContent = "✅ Plantilla cargada";
-
-  // Render chips util
+  // Render chips de una lista en un contenedor
   function renderChips(container, list){
     container.innerHTML = "";
     list.forEach(label => {
       const chip = document.createElement("button");
-      chip.type = "button"; // evita submits si hay <form>
+      chip.type = "button"; // evita submit si hay form
       chip.className = "chip";
       chip.textContent = label;
       if (selected.has(label)) chip.classList.add("active");
@@ -164,10 +153,28 @@ function bindSmartClick(el, handler){
     });
   }
 
-  // Pintar las tres secciones (visibles a la vez)
+  // Pinta las 3 secciones (simultáneas)
   renderChips(chipsBasico, EQUIP_BASICO);
   renderChips(chipsMedio,  EQUIP_MEDIO);
   renderChips(chipsFull,   EQUIP_FULL);
+
+  // Cargar plantilla
+  const plantilla = new Image();
+  plantilla.crossOrigin = "anonymous";
+  plantilla.src = TEMPLATE_SRC;
+  plantilla.onload = () => {
+    canvas.width = plantilla.naturalWidth;
+    canvas.height = plantilla.naturalHeight;
+    ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
+    if (status) status.textContent = `✅ Plantilla cargada · ${VERSION}`;
+  };
+  plantilla.onerror = () => {
+    if (status){
+      status.style.color = "#e67c7c";
+      status.textContent = "⚠️ No se pudo cargar /plantilla/plantilla_franval.png";
+    }
+    btnGenerar.disabled = true; btnDescargar.disabled = true;
+  };
 
   function generar(){
     ctx.clearRect(0,0,canvas.width, canvas.height);
@@ -178,16 +185,15 @@ function bindSmartClick(el, handler){
     const bannerHeight = GEO.BANNER_HEIGHT * H;
     const maxwModel = GEO.MAXW_MODEL * (GEO.BANNER_RIGHT - GEO.BANNER_LEFT) * W;
 
-    const modelo = (modeloEl.value || "").trim();
-    const subtitle = `${(anioEl.value || "").trim()} ${ensureCc(cilindradaEl.value)} ${(versionEl.value || "").trim()}`.trim();
-    const precioTxt = fmtPrecio(precioEl.value);
-    const kmTxt = fmtKm(kmEl.value);
+    const modelo = (modeloEl?.value || "").trim();
+    const subtitle = `${(anioEl?.value || "").trim()} ${ensureCc(cilindradaEl?.value)} ${(versionEl?.value || "").trim()}`.trim();
+    const precioTxt = fmtPrecio(precioEl?.value);
+    const kmTxt = fmtKm(kmEl?.value);
 
-    // Mezcla de items de todas las categorías
     const items = Array.from(selected);
     const detailLines = buildE1Lines(kmTxt, items);
 
-    // Modelo (blanco)
+    // Modelo
     ctx.fillStyle = "#fff";
     let r = fitFont(ctx, modelo, maxwModel, bannerHeight-6, GEO.TARGET_MODEL*H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
@@ -215,8 +221,10 @@ function bindSmartClick(el, handler){
     }
 
     btnDescargar.disabled = false;
-    status.style.color = "#8bd48b";
-    status.textContent = `✅ Previsualización lista (seleccionados: ${items.length})`;
+    if (status){
+      status.style.color = "#8bd48b";
+      status.textContent = `✅ Previsualización lista · seleccionados: ${items.length} · ${VERSION}`;
+    }
   }
 
   function descargar(){
@@ -229,9 +237,11 @@ function bindSmartClick(el, handler){
   }
 
   function limpiar(){
-    ["modelo","anio","cilindrada","version","precio","km"].forEach(id => document.getElementById(id).value = "");
+    ["modelo","anio","cilindrada","version","precio","km"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
     selected.clear();
-    // re-pintar chips (todos desmarcados)
     renderChips(chipsBasico, EQUIP_BASICO);
     renderChips(chipsMedio,  EQUIP_MEDIO);
     renderChips(chipsFull,   EQUIP_FULL);
@@ -239,8 +249,10 @@ function bindSmartClick(el, handler){
     btnDescargar.disabled = true;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.drawImage(plantilla,0,0,canvas.width,canvas.height);
-    status.textContent = "Plantilla cargada. Completa y genera.";
-    status.style.color = "";
+    if (status){
+      status.style.color = "";
+      status.textContent = `Plantilla cargada. Completa y genera. · ${VERSION}`;
+    }
   }
 
   bindSmartClick(btnGenerar, generar);
