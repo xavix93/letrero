@@ -1,8 +1,8 @@
-// ========== FRANVAL · Tabs + selección persistente + FULL especial (F1) ==========
-const VERSION = "2025-10-20-f1-final";
+// ========== FRANVAL · Tabs persistentes + FULL no exclusivo (B) ==========
+const VERSION = "2025-10-20-full-nonexclusive";
 const TEMPLATE_SRC = "plantilla/plantilla_franval.png";
 
-// Geometría (mantiene tu layout)
+// Geometría
 const GEO = {
   BANNER_LEFT:   0.12,
   BANNER_RIGHT:  0.88,
@@ -26,7 +26,7 @@ const GEO = {
   MODEL_OFFSET: -0.065
 };
 
-// Equipamiento (FULL con chip “Full” especial)
+// Equipamiento (incluye "Full" como ítem combinable)
 const EQUIP_BASICO = [
   "Aire Acondicionado",
   "Alza Vidrios",
@@ -48,10 +48,10 @@ const EQUIP_FULL = [
   "Modo Sport",
   "AppleCar/AndroidAuto",
   "Asientos de Cuero",
-  "Full" // especial
+  "Full" // combinable
 ];
 
-// Utilidades
+// Utils
 const onlyDigits = (s) => (s || "").toString().replace(/[^\d]/g, "");
 const clMiles = (n) => Number(n || 0).toLocaleString("es-CL").replace(/\./g, ".");
 const fmtPrecio = (v) => "$" + clMiles(onlyDigits(v) || "0");
@@ -61,7 +61,7 @@ const ensureCc = (s) => {
   return /cc\b/i.test(t) ? t : (t ? `${t} cc` : "");
 };
 
-// E1a base (luego aplicamos la regla FULL si corresponde)
+// E1a base
 function buildE1LinesBase(kmTxt, items){
   const L = [];
   if (kmTxt && items.length) { L.push(`${kmTxt} , ${items[0]}`); items = items.slice(1); }
@@ -73,7 +73,30 @@ function buildE1LinesBase(kmTxt, items){
   return L;
 }
 
-// Ajuste de tipografía
+// “Full” al final y SOLO en su línea (no exclusivo): reordena sin borrar otros
+function placeFullAtEnd(lines){
+  const flat = [...lines]; // lines ya viene armado con pares y/o uno solo
+  // Si ya existe “Full” dentro de alguna línea tipo "A , Full" o "Full , B", lo extraemos
+  const cleaned = [];
+  let hasFull = false;
+  for (const ln of flat){
+    if (/^full$/i.test(ln.trim())){
+      hasFull = true;
+      continue;
+    }
+    // separar por coma y revisar si contiene "Full"
+    const parts = ln.split(",").map(s => s.trim()).filter(Boolean);
+    const remaining = parts.filter(p => p.toLowerCase() !== "full");
+    if (remaining.length !== parts.length) hasFull = true;
+    if (remaining.length === 0) continue;
+    if (remaining.length === 1) cleaned.push(remaining[0]);
+    else cleaned.push(`${remaining[0]} , ${remaining[1]}`);
+  }
+  if (hasFull) cleaned.push("Full");
+  return cleaned;
+}
+
+// Tipografía
 function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   const safeText = text && text.length ? text : " ";
   let size = Math.max(targetPx, minPx);
@@ -92,7 +115,7 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   return { size, width, height, text: safeText };
 }
 
-// Click robusto (PC + iPhone)
+// Click robusto
 function bindSmartClick(el, handler){
   let lock = false;
   const wrap = (ev) => {
@@ -129,11 +152,8 @@ function bindSmartClick(el, handler){
   // Selección GLOBAL (se mantiene entre pestañas) — Opción A
   const selected = new Set();
 
-  // Estado de pestaña actual
-  let currentCat = "BASICO";
-
   // Render chips de una categoría (respetando lo ya seleccionado)
-  function renderChips(container, list, isFullPanel=false){
+  function renderChips(container, list){
     container.innerHTML = "";
     list.forEach(label => {
       const chip = document.createElement("button");
@@ -143,19 +163,8 @@ function bindSmartClick(el, handler){
       if (selected.has(label)) chip.classList.add("active");
 
       bindSmartClick(chip, () => {
-        // Regla especial: si estamos en FULL y tocan “Full”
-        if (isFullPanel && label.toLowerCase() === "full"){
-          selected.clear();                  // quitar TODO
-          selected.add("Full");              // dejar solo Full
-          // refrescar visual de los 3 paneles según selección actual
-          refreshAllChips();
-          return;
-        }
-        // Si “Full” estaba seleccionado y ahora se elige otra cosa → quitar Full
-        if (selected.has("Full") && !(isFullPanel && label.toLowerCase() === "full")){
-          selected.delete("Full");
-        }
-
+        // Opción B: Full NO exclusivo → NO se limpia nada al activarlo
+        // Solo alterna su estado, y luego en el render lo enviamos al final.
         if (selected.has(label)) { selected.delete(label); chip.classList.remove("active"); }
         else { selected.add(label); chip.classList.add("active"); }
       });
@@ -165,22 +174,19 @@ function bindSmartClick(el, handler){
   }
 
   function refreshAllChips(){
-    renderChips(chipsBasico, EQUIP_BASICO, false);
-    renderChips(chipsMedio,  EQUIP_MEDIO,  false);
-    renderChips(chipsFull,   EQUIP_FULL,   true);
+    renderChips(chipsBasico, EQUIP_BASICO);
+    renderChips(chipsMedio,  EQUIP_MEDIO);
+    renderChips(chipsFull,   EQUIP_FULL);
   }
 
-  // Mostrar panel (solo uno a la vez)
+  // Mostrar panel (solo uno visible)
   function showPanel(cat){
-    currentCat = cat;
     tabs.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
-    const btn = tabs.querySelector(`.seg-btn[data-cat="${cat}"]`);
-    if (btn) btn.classList.add("active");
-
+    tabs.querySelector(`.seg-btn[data-cat="${cat}"]`).classList.add("active");
     [panelBasico, panelMedio, panelFull].forEach(p => p.classList.remove("show"));
-    if (cat === "BASICO") { panelBasico.classList.add("show"); }
-    if (cat === "MEDIO")  { panelMedio.classList.add("show"); }
-    if (cat === "FULL")   { panelFull.classList.add("show"); }
+    if (cat === "BÁSICO" || cat === "BASICO") panelBasico.classList.add("show");
+    if (cat === "MEDIO") panelMedio.classList.add("show");
+    if (cat === "FULL")  panelFull.classList.add("show");
   }
 
   // Eventos de tabs
@@ -232,10 +238,19 @@ function bindSmartClick(el, handler){
     const precioTxt = fmtPrecio(precioEl.value);
     const kmTxt = fmtKm(kmEl.value);
 
-    const items = Array.from(selected);
-    const hasFull = items.some(s => s.toLowerCase() === "full");
+    // Mezclamos selecciones de todas las categorías
+    let items = Array.from(selected);
 
-    // Render cabeceras
+    // Construcción E1a base
+    let detailLines = buildE1LinesBase(kmTxt, items);
+
+    // Si incluye “Full”, lo mandamos al final en su propia línea (sin excluir otros)
+    const hasFull = items.some(s => s.toLowerCase() === "full");
+    if (hasFull){
+      detailLines = placeFullAtEnd(detailLines);
+    }
+
+    // Cabeceras
     ctx.fillStyle = "#fff";
     let r = fitFont(ctx, modelo, maxwModel, bannerHeight-6, GEO.TARGET_MODEL*H);
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
@@ -251,27 +266,13 @@ function bindSmartClick(el, handler){
     ctx.font = `800 ${r.size}px Inter, Arial, sans-serif`;
     ctx.fillText(precioTxt, (W-ctx.measureText(precioTxt).width)/2, GEO.Y_PRICE*H);
 
-    // Detalle: FULL especial o E1a normal
+    // Detalle
     let y = GEO.Y_DETAIL*H;
-    if (hasFull){
-      // km solo (si existe) y luego “Full” solo al final
-      const lines = [];
-      if (kmTxt) lines.push(kmTxt);
-      lines.push("Full");
-      for (const line of lines){
-        r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
-        ctx.font = `400 ${r.size}px Inter, Arial, sans-serif`;
-        ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, y);
-        y += r.size * 1.30;
-      }
-    } else {
-      const detailLines = buildE1LinesBase(kmTxt, items);
-      for (const line of detailLines){
-        r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
-        ctx.font = `400 ${r.size}px Inter, Arial, sans-serif`;
-        ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, y);
-        y += r.size * 1.30;
-      }
+    for (const line of detailLines){
+      r = fitFont(ctx, line, GEO.MAXW_DET*W, null, GEO.TARGET_DET*H);
+      ctx.font = `400 ${r.size}px Inter, Arial, sans-serif`;
+      ctx.fillText(r.text, (W-ctx.measureText(r.text).width)/2, y);
+      y += r.size * 1.30;
     }
 
     const status = document.getElementById("status");
@@ -304,6 +305,7 @@ function bindSmartClick(el, handler){
     if (status){ status.style.color = ""; status.textContent = `Plantilla cargada. Completa y genera. · ${VERSION}`; }
   }
 
+  // Vinculaciones
   bindSmartClick(document.getElementById("btnGenerar"), generar);
   bindSmartClick(document.getElementById("btnDescargar"), descargar);
   bindSmartClick(document.getElementById("btnLimpiar"), limpiar);
