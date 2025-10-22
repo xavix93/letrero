@@ -19,7 +19,7 @@ const GEO = {
   TARGET_PRICE: 0.137,
   TARGET_DET:   0.030,
 
-  Y_SUB:    0.305,
+  Y_SUB:    0.280,
   Y_PRICE:  0.440,
   Y_DETAIL: 0.490,
 
