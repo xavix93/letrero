@@ -8,8 +8,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <header class="topbar">
@@ -25,17 +25,17 @@
       <div class="grid">
         <label class="field">
           <span>Marca y modelo</span>
-          <input id="modelo" type="text" placeholder="" />
+          <input id="modelo" type="text" placeholder="Chevrolet N400" />
         </label>
 
         <label class="field">
           <span>Año</span>
-          <input id="anio" type="text" inputmode="numeric" placeholder="" />
+          <input id="anio" type="text" inputmode="numeric" placeholder="2020" />
         </label>
 
         <label class="field">
           <span>Cilindrada</span>
-          <input id="cilindrada" type="text" placeholder="" />
+          <input id="cilindrada" type="text" placeholder="1.7" />
           <small>Se agrega “cc” automáticamente si falta</small>
         </label>
 
@@ -53,7 +53,7 @@
         <label class="field">
           <span>Kilometraje</span>
           <input id="km" type="text" inputmode="numeric" placeholder="31000 o 31.000" />
-          <small>Se formatea a 31.000 km</small>
+          <small>Si lo dejas vacío no aparece</small>
         </label>
 
         <!-- Tabs + Paneles -->
@@ -79,16 +79,17 @@
           <div id="panelFull" class="panel">
             <div class="equip-title">FULL</div>
             <div id="chipsFull" class="chips"></div>
-            <small class="warn">Si seleccionas <b>Full</b>, se desactivará todo lo demás y “Full” irá solo y al final.</small>
+            <small class="warn">“Full” es combinable; en la imagen siempre se muestra como última línea.</small>
           </div>
 
-          <small>Formato E1a: “KM , primer ítem” y luego pares. Con “Full”, el km va solo y “Full” queda en la última línea.</small>
-          <label class="field" style="margin-top:10px;">
-  <span>Equipamiento adicional (opcional)</span>
-  <input id="equipExtra" type="text" placeholder="Ej: Barras en techo, Sensores traseros, Cámara 360" />
-  <small>Separa múltiples elementos con comas</small>
-</label>
+          <small>Formato E1a: “KM , primer ítem” y luego pares. Si hay “Full”, va en la última línea.</small>
 
+          <!-- NUEVO: Equipamiento adicional -->
+          <label class="field" style="margin-top:10px;">
+            <span>Equipamiento adicional (opcional)</span>
+            <input id="equipExtra" type="text" placeholder="Ej: Barras en techo, Sensores traseros" />
+            <small>Separa múltiples elementos con comas. Se capitalizan automáticamente.</small>
+          </label>
         </div>
       </div>
 
@@ -112,6 +113,6 @@
   </footer>
 
   <!-- cache-busting para evitar JS viejo -->
-  <script src="script.js?v=2025-10-20-f1-final" defer></script>
+  <script src="script.js?v=2025-10-21-final2" defer></script>
 </body>
 </html>
