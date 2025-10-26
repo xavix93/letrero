@@ -1,5 +1,5 @@
-// ========== FRANVAL · FULL combinable + Equipamiento Extra + KM opcional ==========
-const VERSION = "2025-10-21-final";
+// ========== FRANVAL · FINAL (PC + iPhone OK) ==========
+const VERSION = "2025-10-21-final2";
 const TEMPLATE_SRC = "plantilla/plantilla_franval.png";
 
 // Geometría
@@ -48,10 +48,10 @@ const EQUIP_FULL = [
   "Modo Sport",
   "AppleCar/AndroidAuto",
   "Asientos de Cuero",
-  "Full"
+  "Full" // combinable
 ];
 
-// Utils
+// ===== Utils =====
 const onlyDigits = (s) => (s || "").toString().replace(/[^\d]/g, "");
 const clMiles = (n) => Number(n || 0).toLocaleString("es-CL").replace(/\./g, ".");
 const fmtPrecio = (v) => "$" + clMiles(onlyDigits(v) || "0");
@@ -59,8 +59,6 @@ const ensureCc = (s) => {
   const t = (s || "").trim();
   return /cc\b/i.test(t) ? t : (t ? `${t} cc` : "");
 };
-
-// Capitalizar cada palabra del extra
 function capitalizeExtra(str){
   return str.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
@@ -77,7 +75,7 @@ function buildE1LinesBase(kmTxt, items){
   return L;
 }
 
-// FULL al final
+// “Full” al final (sin excluir otros)
 function placeFullAtEnd(lines){
   const cleaned = [];
   let hasFull = false;
@@ -93,7 +91,7 @@ function placeFullAtEnd(lines){
   return cleaned;
 }
 
-// Fit font
+// Ajuste tipográfico
 function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   const safeText = text && text.length ? text : " ";
   let size = Math.max(targetPx, minPx);
@@ -112,7 +110,7 @@ function fitFont(ctx, text, maxWidth, maxHeight, targetPx, minPx = 10) {
   return { size, width, height, text: safeText };
 }
 
-// Smart click (PC + iPhone)
+// Click robusto (PC + iPhone)
 function bindSmartClick(el, handler){
   let lock = false;
   const wrap = (ev) => {
@@ -127,9 +125,8 @@ function bindSmartClick(el, handler){
   el.addEventListener("mouseup",   wrap, {passive:false});
 }
 
-// MAIN
 (function main(){
-  // Inputs
+  // ===== DOM =====
   const modeloEl = document.getElementById("modelo");
   const anioEl = document.getElementById("anio");
   const cilindradaEl = document.getElementById("cilindrada");
@@ -138,7 +135,6 @@ function bindSmartClick(el, handler){
   const kmEl = document.getElementById("km");
   const equipExtraEl = document.getElementById("equipExtra");
 
-  // Tabs & chips
   const tabs = document.getElementById("catTabs");
   const panelBasico = document.getElementById("panelBasico");
   const panelMedio  = document.getElementById("panelMedio");
@@ -148,8 +144,15 @@ function bindSmartClick(el, handler){
   const chipsMedio  = document.getElementById("chipsMedio");
   const chipsFull   = document.getElementById("chipsFull");
 
+  const btnGenerar = document.getElementById("btnGenerar");
+  const btnDescargar = document.getElementById("btnDescargar");
+  const btnLimpiar = document.getElementById("btnLimpiar");
+  const status = document.getElementById("status");
+
+  // Selección global (se mantiene entre pestañas)
   const selected = new Set();
 
+  // Render chips
   function renderChips(container, list){
     container.innerHTML = "";
     list.forEach(label => {
@@ -167,13 +170,13 @@ function bindSmartClick(el, handler){
       container.appendChild(chip);
     });
   }
-
   function refreshAllChips(){
     renderChips(chipsBasico, EQUIP_BASICO);
-    renderChips(chipsMedio, EQUIP_MEDIO);
-    renderChips(chipsFull, EQUIP_FULL);
+    renderChips(chipsMedio,  EQUIP_MEDIO);
+    renderChips(chipsFull,   EQUIP_FULL);
   }
 
+  // Tabs: mostrar un panel a la vez
   function showPanel(cat){
     tabs.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
     tabs.querySelector(`.seg-btn[data-cat="${cat}"]`).classList.add("active");
@@ -182,11 +185,11 @@ function bindSmartClick(el, handler){
     if (cat === "MEDIO") panelMedio.classList.add("show");
     if (cat === "FULL")  panelFull.classList.add("show");
   }
-
   tabs.querySelectorAll(".seg-btn").forEach(btn => {
     bindSmartClick(btn, () => showPanel(btn.dataset.cat));
   });
 
+  // Inicial
   refreshAllChips();
   showPanel("BASICO");
 
@@ -194,6 +197,7 @@ function bindSmartClick(el, handler){
   const canvas = document.getElementById("lienzo");
   const ctx = canvas.getContext("2d");
 
+  // Cargar plantilla
   const plantilla = new Image();
   plantilla.crossOrigin = "anonymous";
   plantilla.src = TEMPLATE_SRC;
@@ -201,23 +205,35 @@ function bindSmartClick(el, handler){
     canvas.width = plantilla.naturalWidth;
     canvas.height = plantilla.naturalHeight;
     ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
-    const status = document.getElementById("status");
     if (status) status.textContent = `✅ Plantilla cargada · ${VERSION}`;
+  };
+  plantilla.onerror = () => {
+    // Igual habilitamos el canvas con tamaño por defecto para evitar bloqueos
+    canvas.width = 1080; canvas.height = 1080;
+    if (status){
+      status.style.color = "#e6b86e";
+      status.textContent = "⚠️ No se pudo cargar /plantilla/plantilla_franval.png. Asegúrate de que exista. (Se usa fondo vacío)";
+    }
   };
 
   // Generar
   function generar(){
+    // Mezcla selección + extra
     let items = Array.from(selected);
-
-    // Extra manual con capitalización
-    const extraRaw = (equipExtraEl.value || "").trim();
+    const extraRaw = (equipExtraEl?.value || "").trim();
     if (extraRaw){
       const extras = extraRaw.split(",").map(s => capitalizeExtra(s.trim())).filter(Boolean);
       items = items.concat(extras);
     }
 
+    // Fondo
     ctx.clearRect(0,0,canvas.width, canvas.height);
-    ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
+    if (plantilla.complete && plantilla.naturalWidth){
+      ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,canvas.width, canvas.height);
+    }
 
     const W = canvas.width, H = canvas.height;
     const bannerTop = GEO.BANNER_TOP * H;
@@ -234,12 +250,8 @@ function bindSmartClick(el, handler){
 
     // Líneas
     let detailLines = buildE1LinesBase(kmTxt, items);
-
-    // FULL al final
     const hasFull = items.some(s => s.toLowerCase() === "full");
-    if (hasFull){
-      detailLines = placeFullAtEnd(detailLines);
-    }
+    if (hasFull) detailLines = placeFullAtEnd(detailLines);
 
     // Modelo
     ctx.fillStyle = "#fff";
@@ -268,12 +280,11 @@ function bindSmartClick(el, handler){
       y += r.size * 1.30;
     }
 
-    const status = document.getElementById("status");
-    document.getElementById("btnDescargar").disabled = false;
+    btnDescargar.disabled = false;
     if (status){ status.style.color = "#8bd48b"; status.textContent = `✅ Previsualización lista · ${VERSION}`; }
   }
 
-  // Descargar con nombre automático
+  // Descargar marca_modelo_año
   function descargar(){
     const modeloRaw  = (modeloEl.value || "").trim().replace(/\s+/g, "_");
     const anioRaw    = (anioEl.value || "").trim().replace(/\s+/g, "_");
@@ -300,15 +311,16 @@ function bindSmartClick(el, handler){
     refreshAllChips();
     showPanel("BASICO");
 
-    const status = document.getElementById("status");
-    document.getElementById("btnDescargar").disabled = true;
+    btnDescargar.disabled = true;
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(plantilla,0,0,canvas.width,canvas.height);
+    if (plantilla.complete && plantilla.naturalWidth){
+      ctx.drawImage(plantilla,0,0,canvas.width,canvas.height);
+    }
     if (status){ status.style.color = ""; status.textContent = `Plantilla cargada. Completa y genera. · ${VERSION}`; }
   }
 
   // Eventos
-  bindSmartClick(document.getElementById("btnGenerar"), generar);
-  bindSmartClick(document.getElementById("btnDescargar"), descargar);
-  bindSmartClick(document.getElementById("btnLimpiar"), limpiar);
+  bindSmartClick(btnGenerar, generar);
+  bindSmartClick(btnDescargar, descargar);
+  bindSmartClick(btnLimpiar, limpiar);
 })();
