@@ -138,6 +138,7 @@ function bindSmartClick(el, handler){
   const versionEl = document.getElementById("version");
   const precioEl = document.getElementById("precio");
   const kmEl = document.getElementById("km");
+const equipExtraEl = document.getElementById("equipExtra");
 
   // Tabs & Panels
   const tabs = document.getElementById("catTabs");
@@ -225,6 +226,15 @@ function bindSmartClick(el, handler){
 
   // Generar imagen
   function generar(){
+    let items = Array.from(selected);
+
+// Extra manual
+const extraRaw = (equipExtraEl.value || "").trim();
+if (extraRaw){
+  const extras = extraRaw.split(",").map(s => s.trim()).filter(Boolean);
+  items = items.concat(extras);
+}
+
     ctx.clearRect(0,0,canvas.width, canvas.height);
     ctx.drawImage(plantilla, 0, 0, canvas.width, canvas.height);
 
